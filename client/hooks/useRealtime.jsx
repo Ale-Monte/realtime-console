@@ -1,6 +1,7 @@
-// useRealtime.jsx
+// client/hooks/useRealtime.jsx
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BASE_URL, MODEL } from '../../config.js';
+import { TOOL_SPEC, runToolByName } from '../utils/toolRegistry.js';
 
 export default function useRealtime() {
   const [status, setStatus] = useState('idle'); // idle | connecting | connected | error
@@ -23,6 +24,19 @@ export default function useRealtime() {
   const pcRef = useRef(null);
   const dcRef = useRef(null);
   const micTrackRef = useRef(null);
+
+  // Function Calling Helper to send JSON events to the server over the data channel
+  const send = useCallback((obj) => {
+    const dc = dcRef.current;
+    if (!dc || dc.readyState !== 'open') {
+      pushEvent(makeClientEvent('dc.send.error', { reason: 'datachannel not open', payload: obj }));
+      return;
+    }
+    const payload = JSON.stringify(obj);
+    dc.send(payload);
+    // mirror to local event log
+    pushEvent(makeClientEvent('client.event.sent', { payload: obj }));
+  }, [pushEvent, makeClientEvent]);
 
   const connect = useCallback(async () => {
     if (status === 'connected' || status === 'connecting') return;
@@ -57,7 +71,24 @@ export default function useRealtime() {
       // 5) Data channel for events
       const dc = pc.createDataChannel('oai-events');
       dcRef.current = dc;
-      dc.addEventListener('message', (e) => {
+
+      // (Function calling) When DC opens, register callable tools on the session
+      dc.addEventListener('open', () => {
+        pushEvent(makeClientEvent('dc.open'));
+        // Advertise our tool(s) so the model can call them
+        send({
+          type: 'session.update',
+          session: {
+            tools: TOOL_SPEC,
+            tool_choice: 'auto'
+          }
+        });
+        // (Optional) seed a system note in the log
+        pushEvent(makeClientEvent('session.tools.advertised', { tools: TOOL_SPEC.map(t => t.name) }));
+      });
+
+
+      dc.addEventListener('message', async (e) => {
         // replaced logger: record server event as structured JSON if possible
         try {
           const ev = JSON.parse(e.data);
@@ -68,6 +99,45 @@ export default function useRealtime() {
             ...ev,
           };
           pushEvent(normalized);
+
+          // --- Function-calling bridge ---
+          // Look for a completed response that contains a function_call item
+          if (normalized.type === 'response.done' && normalized?.response?.output?.length) {
+            const fnItem = normalized.response.output.find(o => o.type === 'function_call' && o.status === 'completed');
+            if (fnItem && fnItem.name && fnItem.arguments) {
+              try {
+                // Parse model-provided args (it's a JSON string)
+                let args = {};
+                try {
+                  args = JSON.parse(fnItem.arguments);
+                } catch (parseErr) {
+                  pushEvent(makeClientEvent('tool.args.parse_error', { raw: fnItem.arguments }));
+                  throw parseErr;
+                }
+                // Run our custom code
+                const result = await runToolByName(fnItem.name, args);
+                // 1) Provide results back to the model
+                send({
+                  type: 'conversation.item.create',
+                  item: {
+                    type: 'function_call_output',
+                    call_id: fnItem.call_id, // must echo back to tie the result to the call
+                    output: JSON.stringify(result)
+                  }
+                });
+                // 2) Ask the model to continue, now that it has tool output
+                send({ type: 'response.create' });
+                pushEvent(makeClientEvent('tool.executed', {
+                  name: fnItem.name,
+                  args,
+                  result
+                }));
+              } catch (toolErr) {
+                pushEvent(makeClientEvent('tool.error', { name: fnItem?.name, message: toolErr.message }));
+              }
+            }
+          }
+
 
           if (normalized.type === 'response.done') {
             // optionally surface a compact summary as a client-side note
@@ -125,7 +195,7 @@ export default function useRealtime() {
       pushEvent(makeClientEvent('session.error', { message: err.message || String(err) }));
       setStatus('error');
     }
-  }, [status, pushEvent, makeClientEvent]);
+  }, [status, pushEvent, makeClientEvent, send]);
 
   const disconnect = useCallback(() => {
     try {
