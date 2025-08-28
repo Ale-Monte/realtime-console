@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node server.js",
     "build": "vite build",
-    "preview": "NODE_ENV=production node server.js"
+    "preview": "NODE_ENV=production node server.js",
+    "start": "node server.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
