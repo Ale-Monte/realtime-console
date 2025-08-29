@@ -84,7 +84,7 @@ export default function EventLog({ status, events = [] }) {
 
   return (
     <section className="event-log" aria-label="Event log">
-      <div className="status-pill" role="status" aria-live="polite">
+      <div className="status-pill" data-status={status} role="status" aria-live="polite">
         Status: {status ?? "—"}
       </div>
 

@@ -4,7 +4,6 @@ import useRealtime from './hooks/useRealtime';
 import Controls from './components/Controls';
 import EventLog from './components/EventLog';
 import AudioSink from './components/AudioSink';
-import HoroscopePanel from './components/HoroscopePanel';
 
 export default function App() {
   const {
@@ -23,7 +22,6 @@ export default function App() {
         <h1>Realtime AI Conversation</h1>
         <AudioSink audioRef={audioRef} />
         <EventLog status={status} events={events} />
-        <HoroscopePanel events={events} />
       </div>
 
       {/* Stick this to the bottom */}

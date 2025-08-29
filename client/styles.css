@@ -111,12 +111,40 @@ h1 {
   align-items: center;
   gap: 0.5ch;
   padding: 6px 10px;
-  background: var(--accent-10);
-  color: var(--accent);
-  border: 1px solid var(--accent-20);
+  background: var(--pill-bg, #f3f4f6);
+  color: var(--pill-fg, #374151);
+  border: 1px solid var(--pill-border, #d1d5db);
   border-radius: 999px;
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+/* idle (neutral/gray) */
+.status-pill[data-status="idle"] {
+  --pill-bg: #f3f4f6;   /* gray-100 */
+  --pill-fg: #374151;   /* gray-700 */
+  --pill-border: #d1d5db; /* gray-300 */
+}
+
+/* connecting (in-progress/amber) */
+.status-pill[data-status="connecting"] {
+  --pill-bg: #fffbeb;   /* amber-50 */
+  --pill-fg: #92400e;   /* amber-700 */
+  --pill-border: #fde68a; /* amber-200 */
+}
+
+/* connected (success/green) */
+.status-pill[data-status="connected"] {
+  --pill-bg: #ecfdf5;   /* emerald-50 */
+  --pill-fg: #065f46;   /* emerald-700 */
+  --pill-border: #6ee7b7; /* emerald-300 */
+}
+
+/* error (failure/red) */
+.status-pill[data-status="error"] {
+  --pill-bg: #fef2f2;   /* red-50 */
+  --pill-fg: #991b1b;   /* red-800 */
+  --pill-border: #fca5a5; /* red-300 */
 }
 
 .event-log .heading {
@@ -196,6 +224,12 @@ h1 {
   color: var(--accent);
   background: var(--accent-10);
   border-color: var(--accent-20);
+}
+
+.turn.tool .role {
+  color: #ca8a04;
+  background: rgba(202, 138, 4, 0.10);
+  border-color: rgba(202, 138, 4, 0.20);
 }
 
 .text {
