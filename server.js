@@ -4,7 +4,10 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
-import { BASE_URL, MODEL, VOICE, INSTRUCTIONS, SPEED, TOOL_CHOICE, INPUT_AUDIO_TRANSCRIPTION} from './config.js';
+import {
+  BASE_URL, MODEL, VOICE, INSTRUCTIONS, SPEED, TOOL_CHOICE, INPUT_AUDIO_TRANSCRIPTION
+} from './config.js';
+import checaPreciosRouter from './routes/checaPrecios.js'; // Gets the default export from checaPrecios.js which is the router (import name can be anything)
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +18,17 @@ if (!process.env.OPENAI_API_KEY) {
 }
 
 const app = express();
+app.use(express.json({ limit: '1mb' })); // JSON parsing (slightly higher limit for batch embeddings)
+
+const isProd = process.env.NODE_ENV === 'production';
+const port = process.env.PORT || 5173;
+
+/**
+ * --- API ROUTES (mount before any catch-alls) ---
+ * Add new tools by mounting under /api here, e.g.:
+ *   app.use('/api/mytool', myToolRouter);
+ */
+app.use('/api/checaprecios', checaPreciosRouter); // If any call goes to api/embeddings, send to embeddingsRouter
 
 // --- API: mint ephemeral Realtime session token (server-side standard API key) ---
 app.get('/session', async (_req, res) => {
@@ -32,6 +46,7 @@ app.get('/session', async (_req, res) => {
         speed: SPEED,
         tool_choice: TOOL_CHOICE,
         input_audio_transcription: INPUT_AUDIO_TRANSCRIPTION,
+        include: ['item.input_audio_transcription.logprobs'],
       }),
     });
 
@@ -50,11 +65,8 @@ app.get('/session', async (_req, res) => {
   }
 });
 
-const isProd = process.env.NODE_ENV === 'production';
-const port = process.env.PORT || 5173;
-
 if (!isProd) {
-  // --- DEV: Vite middleware, read the SAME root index.html and let Vite transform it ---
+  // --- DEV: Vite middleware, transform the same root index.html ---
   const { createServer: createViteServer } = await import('vite');
   const vite = await createViteServer({
     server: { middlewareMode: true },
@@ -63,10 +75,11 @@ if (!isProd) {
 
   app.use(vite.middlewares);
 
-  app.use('*', async (req, res, next) => {
+  // GET-only SPA fallback; do not intercept API or /session
+  app.get('*', async (req, res, next) => {
     try {
       const url = req.originalUrl;
-      if (url.startsWith('/session')) return next();
+      if (url.startsWith('/api/') || url.startsWith('/session')) return next();
 
       // Single source of truth: project-root index.html
       const rawHtml = await fs.readFile(path.resolve(__dirname, 'client', 'index.html'), 'utf-8');
@@ -78,13 +91,22 @@ if (!isProd) {
     }
   });
 } else {
-  // --- PROD: serve build output; dist/index.html is generated from the SAME root index.html ---
+  // --- PROD: serve build output; dist/index.html generated from the same root index.html ---
   const distPath = path.resolve(__dirname, 'dist');
   const indexPath = path.resolve(distPath, 'index.html');
 
   app.use(express.static(distPath, { index: false }));
-  app.get('*', (_req, res) => res.sendFile(indexPath));
+
+  // GET-only SPA fallback; do not intercept API or /session
+  app.get('*', (req, res, next) => {
+    const url = req.originalUrl;
+    if (url.startsWith('/api/') || url.startsWith('/session')) return next();
+    res.sendFile(indexPath);
+  });
 }
+
+// Optional: simple 404 for unknown API GETs (so they don't fall back to index.html)
+app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
 
 app.listen(port, () => {
   console.log(`${isProd ? 'Prod' : 'Dev'} server running on http://localhost:${port}`);

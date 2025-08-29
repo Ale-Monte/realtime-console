@@ -5,6 +5,11 @@ import getUtterances from "../utils/logger.js"; // expects { id, role: 'user'|'a
 
 function ConversationTurn({ turn, rawEvent }) {
   const [open, setOpen] = useState(false);
+  const label = turn.role === "user"
+   ? "You"
+   : turn.role === "assistant"
+   ? "Assistant"
+   : "Tool"; // handle "tool"
 
   return (
     <div className={`turn ${turn.role}`} data-open={open ? "true" : "false"}>
@@ -14,8 +19,10 @@ function ConversationTurn({ turn, rawEvent }) {
         aria-expanded={open}
         onClick={() => setOpen(v => !v)}
       >
-        <div className="role">{turn.role === "user" ? "You" : "Assistant"}</div>
-        <div className="text">{turn.text}</div>
+        <div className="role">{label}</div>
+        <div className="text">
+         {typeof turn.text === "string" ? turn.text : JSON.stringify(turn.text)}
+         </div>
         <time className="timestamp" dateTime={turn.at}>
           {new Date(turn.at).toLocaleString()}
         </time>
@@ -33,8 +40,9 @@ function ConversationTurn({ turn, rawEvent }) {
 ConversationTurn.propTypes = {
   turn: PropTypes.shape({
     id: PropTypes.string.isRequired,
-    role: PropTypes.oneOf(["user", "assistant"]).isRequired,
-    text: PropTypes.string.isRequired,
+    role: PropTypes.oneOf(["user", "assistant", "tool"]).isRequired,
+    // Tool outputs might not be plain strings once you start passing objects
+    text: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
     at: PropTypes.string.isRequired,
   }).isRequired,
   rawEvent: PropTypes.object, // original event for this turn (shown when expanded)

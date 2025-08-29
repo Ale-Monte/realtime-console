@@ -20,6 +20,35 @@ export const TOOL_SPEC = [
       },
       required: ["sign"]
     }
+  },
+  {
+    type: "function",
+    name: "create_embeddings",
+    description: "Create vector embeddings for one or more texts using the backend.",
+    parameters: {
+      type: "object",
+      properties: {
+        input: {
+          description: "A single string or an array of strings to embed.",
+          oneOf: [
+            { type: "string" },
+            { type: "array", items: { type: "string" }, minItems: 1 }
+          ]
+        },
+        model: {
+          type: "string",
+          description: "Embedding model to use (default: text-embedding-3-small).",
+          default: "text-embedding-3-small"
+        },
+        encoding_format: {
+          type: "string",
+          description: "Embedding format: 'float' or 'base64' (default: float).",
+          enum: ["float", "base64"],
+          default: "float"
+        }
+      },
+      required: ["input"]
+    }
   }
 ];
 
@@ -45,9 +74,38 @@ async function generate_horoscope({ sign }) {
   return { horoscope: text };
 }
 
+async function create_embeddings({ input, model = "text-embedding-3-small", encoding_format = "float" }) {
+  const payload = {
+    input: Array.isArray(input) ? input : String(input),
+    model,
+    encoding_format
+  };
+
+  const r = await fetch("/api/checaprecios", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!r.ok) {
+    // Try to surface server error JSON if present
+    let message = `HTTP ${r.status}`;
+    try {
+      const { error } = await r.json();
+      if (error) message = error;
+    } catch (_) {}
+    throw new Error(`create_embeddings failed: ${message}`);
+  }
+
+  // Expected shape from server: { model, usage, count, embeddings }
+  const data = await r.json();
+  return data; // Must be JSON-serializable
+}
+
 // --- Simple registry/dispatcher ---
 const registry = {
   generate_horoscope,
+  create_embeddings   // <--- NEW
 };
 
 export async function runToolByName(name, args) {

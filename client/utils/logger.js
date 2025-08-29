@@ -106,18 +106,18 @@ export default function getUtterances(events = []) {
     // If you ever re-enable it, make sure to guard so it only runs when
     // response.done did not already produce a message for the same utterance.
     //
-    // if (ev.type === 'response.audio_transcript.done') {
-    //   const text = ev?.transcript?.trim();
-    //   if (text) {
-    //     out.push({
-    //       id: ev.event_id,
-    //       role: 'assistant',
-    //       text,
-    //       at: ev.timestamp,
-    //     });
-    //   }
-    //   continue;
-    // }
+    if (ev.type === 'response.audio_transcript.done') {
+      const text = ev?.transcript?.trim();
+      if (text) {
+        out.push({
+          id: ev.event_id,
+          role: 'assistant',
+          text,
+          at: ev.timestamp,
+        });
+      }
+      continue;
+    }
   }
 
   // If needed, you could sort here: out.sort((a, b) => new Date(a.at) - new Date(b.at));
