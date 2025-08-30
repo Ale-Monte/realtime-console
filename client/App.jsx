@@ -4,6 +4,7 @@ import useRealtime from './hooks/useRealtime';
 import Controls from './components/Controls';
 import EventLog from './components/EventLog';
 import AudioSink from './components/AudioSink';
+import MapPanel from './components/MapPanel';
 
 export default function App() {
   const {
@@ -23,6 +24,9 @@ export default function App() {
         <AudioSink audioRef={audioRef} />
         <EventLog status={status} events={events} />
       </div>
+
+      {/* New right-side map panel */}
+      <MapPanel />
 
       {/* Stick this to the bottom */}
       <Controls
