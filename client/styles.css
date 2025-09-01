@@ -305,16 +305,21 @@ h1 {
   padding: 0 10px;
   border-bottom: 1px solid var(--panel-border, #2a2d33);
   background: var(--panel-header, rgba(255,255,255,0.04));
+  gap: .5rem;
 }
 
 .map-panel__title {
   font-size: 14px;
   font-weight: 600;
+  flex: 1 1 auto; min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .map-panel__actions {
   display: flex;
-  gap: 6px;
+  gap: .25rem;
 }
 
 .map-panel__iconbtn {

@@ -26,7 +26,7 @@ export default function App() {
       </div>
 
       {/* New right-side map panel */}
-      <MapPanel />
+      <MapPanel events={events}/>
 
       {/* Stick this to the bottom */}
       <Controls

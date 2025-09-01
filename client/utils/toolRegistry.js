@@ -49,6 +49,20 @@ export const TOOL_SPEC = [
       },
       required: ["input"]
     }
+  },
+  {
+    type: "function",
+    name: "checa_precios",
+    description: "Show the prices of the specified product from the three closest stores.",
+    parameters: {
+      type: "object",
+      properties: {
+        item: {
+          description: "The item the user wants to check prices for.",
+        }
+      },
+      required: ["item"]
+    }
   }
 ];
 
@@ -102,10 +116,22 @@ async function create_embeddings({ input, model = "text-embedding-3-small", enco
   return data; // Must be JSON-serializable
 }
 
+export async function checa_precios(query) {
+  const res = await fetch("/api/checaprecios", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  });
+
+  if (!res.ok) throw new Error("Failed to fetch prices");
+  return res.json();
+}
+
 // --- Simple registry/dispatcher ---
 const registry = {
   generate_horoscope,
-  create_embeddings   // <--- NEW
+  create_embeddings,
+  checa_precios
 };
 
 export async function runToolByName(name, args) {
