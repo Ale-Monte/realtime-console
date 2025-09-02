@@ -23,6 +23,21 @@ export const TOOL_SPEC = [
   },
   {
     type: "function",
+    name: "data_analyzer",
+    description: "Runs code to perform calculations, analyze data, generate or transform files, and create visualizations whenever a request requires computation or programmatic processing beyond text reasoning.",
+    parameters: {
+      type: "object",
+      properties: {
+        user_query: {
+          type: "string",
+          description: "The user's request describing what they want analyzed or calculated",
+        }
+      },
+      required: ["user_query"]
+    }
+  },
+  {
+    type: "function",
     name: "create_embeddings",
     description: "Create vector embeddings for one or more texts using the backend.",
     parameters: {
@@ -127,11 +142,23 @@ export async function checa_precios(query) {
   return res.json();
 }
 
+export async function data_analyzer(query) {
+  const res = await fetch("/api/dataanalyzer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  });
+
+  if (!res.ok) throw new Error("Failed to fetch data analysis");
+  return res.json();
+}
+
 // --- Simple registry/dispatcher ---
 const registry = {
   generate_horoscope,
   create_embeddings,
-  checa_precios
+  checa_precios,
+  data_analyzer
 };
 
 export async function runToolByName(name, args) {

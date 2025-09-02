@@ -8,6 +8,7 @@ import {
   BASE_URL, MODEL, VOICE, INSTRUCTIONS, SPEED, TOOL_CHOICE, INPUT_AUDIO_TRANSCRIPTION
 } from './config.js';
 import checaPreciosRouter from './routes/checaPrecios.js'; // Gets the default export from checaPrecios.js which is the router (import name can be anything)
+import dataAnalyzerRouter from './routes/dataAnalyzer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +30,7 @@ const port = process.env.PORT || 5173;
  *   app.use('/api/mytool', myToolRouter);
  */
 app.use('/api/checaprecios', checaPreciosRouter); // If any call goes to api/embeddings, send to embeddingsRouter
+app.use('/api/dataanalyzer', dataAnalyzerRouter); // NEW: mount the data analyzer router
 
 // --- API: mint ephemeral Realtime session token (server-side standard API key) ---
 app.get('/session', async (_req, res) => {

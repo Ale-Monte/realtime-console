@@ -27,3 +27,6 @@ dist-ssr
 # environment variables
 .env
 .env.production
+
+# extra
+embeddings_profeco.json
