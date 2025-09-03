@@ -422,6 +422,364 @@ h1 {
   }
 }
 
+/* Docked panel ------------------------------------------------------------ */
+.dock-panel {
+  position: fixed;
+  left: 16px;              /* ⬅️ bottom-left */
+  bottom: 16px;
+  width: 380px;
+  height: 320px;
+  max-width: calc(100vw - 24px);
+  max-height: 50vh;
+  background: var(--panel-bg, #101114);
+  color: var(--panel-fg, #e7e9ea);
+  border: 1px solid var(--panel-border, #2a2d33);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.25);
+  overflow: hidden;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: saturate(1.1) blur(4px);
+  transition:
+    width 160ms ease,
+    height 160ms ease,
+    max-height 160ms ease;
+}
+
+/* Expanded state — larger desktop size (responsive caps still apply) */
+.dock-panel[data-expanded="true"] {
+  width: 720px;
+  height: 520px;
+  max-height: 75vh;
+}
+
+.dock-panel__header {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--panel-border, #2a2d33);
+  background: var(--panel-header, rgba(255,255,255,0.04));
+  gap: .5rem;
+}
+
+.dock-panel__title {
+  font-size: 16px;
+  font-weight: 600;
+  flex: 1 1 auto; min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dock-panel__actions {
+  display: flex;
+  gap: .25rem;
+}
+
+.dock-panel__iconbtn {
+  height: 28px;
+  width: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border, #2a2d33);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.dock-panel__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;   /* ⬅️ add this */
+  min-height: 0;    /* you already had this — keep it */
+  overflow: hidden; /* optional: contain inner scrollers */
+}
+
+.dock-panel__placeholder {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border: 1px dashed rgba(255,255,255,0.1);
+  border-radius: 10px;
+}
+
+/* Floating open button when panel is closed */
+.dock-fab {
+  position: fixed;
+  left: 16px;              /* ⬅️ bottom-left */
+  bottom: 16px;
+  height: 40px;
+  min-width: 64px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border, #2a2d33);
+  background: var(--panel-bg, #101114);
+  color: var(--panel-fg, #e7e9ea);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+  cursor: pointer;
+  z-index: 1000;
+}
+
+.dock-default-pane h3{
+  padding: 2px 8px 2px 20px; 
+  margin-bottom: 0px;
+  margin-top: 0px;
+  /* top right bottom left */
+}
+
+.analysis-text {
+  padding: 0px 8px 0px 20px;
+  margin-top: 0px;
+}
+
+/* Responsive tweaks ------------------------------------------------------- */
+@media (max-width: 480px) {
+  .dock-panel {
+    width: calc(100vw - 16px);
+    left: 8px;
+    right: 8px; /* safe overlap for centered width calc */
+  }
+  .dock-panel[data-expanded="true"] {
+    width: calc(100vw - 16px);
+    height: min(70vh, 560px);
+  }
+}
+
+/* Bottom tab strip -------------------------------------------------------- */
+.dock-tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--panel-border, #2a2d33);
+  background: var(--panel-header, rgba(255,255,255,0.04));
+  flex: 0 0 auto;   /* ⬅️ ensure it doesn't grow */
+}
+
+/* Arrow buttons */
+.dock-tabs__arrow {
+  height: 28px;
+  width: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border, #2a2d33);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.9;
+  transition: opacity 120ms ease, transform 120ms ease, background 120ms ease;
+}
+.dock-tabs__arrow:hover:not(:disabled) {
+  opacity: 1;
+  background: rgba(255,255,255,0.06);
+}
+.dock-tabs__arrow:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.dock-tabs__arrow:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Horizontal tab list */
+.dock-tabs__list {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE 10+ */
+}
+.dock-tabs__list::-webkit-scrollbar { display: none; }
+
+/* Faded edges for scrollable lists */
+.dock-tabs__list::before,
+.dock-tabs__list::after {
+  content: "";
+  pointer-events: none;
+  position: sticky;
+  top: 0;
+  height: 100%;
+  width: 12px;
+}
+.dock-tabs__list::before {
+  left: 0;
+  background: linear-gradient(to right, rgba(16,17,20,0.9), rgba(16,17,20,0));
+}
+.dock-tabs__list::after {
+  right: 0;
+  background: linear-gradient(to left, rgba(16,17,20,0.9), rgba(16,17,20,0));
+}
+
+/* Tab buttons */
+.dock-tabs__btn {
+  position: relative;
+  flex: 0 0 auto;
+  max-width: 180px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0.8;
+  transition:
+    opacity 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
+  white-space: nowrap;
+}
+.dock-tabs__btn:hover {
+  opacity: 1;
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.06);
+}
+.dock-tabs__btn:focus-visible {
+  outline: none;
+  border-color: rgba(90,132,255,0.7);
+  box-shadow: 0 0 0 2px rgba(90,132,255,0.25);
+}
+
+/* Active state + underline */
+.dock-tabs__btn.is-active {
+  opacity: 1;
+}
+.dock-tabs__btn.is-active::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -6px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #9aa7ff 0%, #76d4ff 100%);
+  transition: left 160ms ease, right 160ms ease;
+}
+
+/* Tab label (optional truncation) */
+.dock-tabs__label {
+  display: inline-block;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+/* Tab panel wrapper (helps if you want padding/scroll control) */
+.dock-tabpanel {
+  /* replace previous rule */
+  flex: 1 1 auto;
+  min-height: 0;           /* lets inner scroller take the remaining height */
+  overflow: hidden;        /* we’ll scroll inside the CSV scroller */
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .dock-tabs__arrow,
+  .dock-tabs__btn,
+  .dock-panel {
+    transition: none !important;
+  }
+}
+
+
+/* CSV preview ------------------------------------------------------------- */
+.dock-csv__scroller {
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--csv-border, #2a2d33);
+  border-radius: 10px;
+  background: var(--csv-bg, rgba(255,255,255,0.02));
+  /* smooth scrolling + unobtrusive scrollbar */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+  overflow-x: auto;
+  overflow-y: auto;
+  /* optional: keep space reserved for scrollbars so layout doesn't jump */
+  scrollbar-gutter: stable both-edges;
+}
+.dock-csv__scroller::-webkit-scrollbar { height: 8px; width: 8px; }
+.dock-csv__scroller::-webkit-scrollbar-thumb { background: rgba(255,255,255,1); border-radius: 999px; }
+.dock-csv__scroller::-webkit-scrollbar-track { background: transparent; }
+
+.dock-csv__table {
+  width: max-content;   /* grow to fit intrinsic column size */
+  min-width: 100%;      /* but never smaller than the container */
+  border-collapse: separate;   /* cleaner dividers than collapse in dark UI */
+  border-spacing: 0;
+  table-layout: auto;   /* let content define column widths */
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--panel-fg, #e7e9ea);
+}
+
+/* Header: sticky with soft backdrop and bottom border */
+.dock-csv__table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background:rgba(0, 0, 0,0.8);
+  backdrop-filter: saturate(1.1) blur(2px);
+  text-align: left;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--csv-border, #2a2d33);
+  white-space: nowrap;
+}
+
+/* Cells */
+.dock-csv__table :is(th, td) {
+  padding: 6px 10px;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums; /* tidy numbers */
+}
+
+/* Column edges get a little breathing room */
+.dock-csv__table :is(th, td):first-child { padding-left: 12px; }
+.dock-csv__table :is(th, td):last-child  { padding-right: 12px; }
+
+/* Row zebra + hover */
+.dock-csv__table tbody tr:nth-child(odd)  { background: rgba(255,255,255,0.02); }
+.dock-csv__table tbody tr:hover           { background: rgba(118,212,255,0.10); }
+
+/* Optional: “numeric” utility if you add className="num" to numeric cells */
+.dock-csv__table td.num { text-align: right; }
+
+/* Dense/comfortable toggle (set data-density on the scroller wrapper) */
+.dock-csv__scroller[data-density="dense"]  .dock-csv__table :is(th, td) { padding: 4px 8px; }
+.dock-csv__scroller[data-density="cozy"]   .dock-csv__table :is(th, td) { padding: 8px 12px; }
+
+/* Empty-state hint (if you ever render it) */
+.dock-csv__table tbody:empty::before {
+  content: "No rows to display";
+  display: block;
+  padding: 16px;
+  opacity: 0.7;
+}
+
+.dock-csv__table th,
+.dock-csv__table td {
+  white-space: nowrap;
+}
+
+
+
 /* Controls (sticky bottom bar) ------------------------------------------- */
 .controls {
   position: fixed; /* ensure it starts pinned to the bottom */

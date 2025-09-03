@@ -5,6 +5,7 @@ import Controls from './components/Controls';
 import EventLog from './components/EventLog';
 import AudioSink from './components/AudioSink';
 import MapPanel from './components/MapPanel';
+import DockPanel from './components/DockPanel';
 
 export default function App() {
   const {
@@ -27,6 +28,9 @@ export default function App() {
 
       {/* New right-side map panel */}
       <MapPanel events={events}/>
+
+      {/* New lef-side panel */}
+      <DockPanel events={events}/>
 
       {/* Stick this to the bottom */}
       <Controls

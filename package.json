@@ -11,11 +11,13 @@
   },
   "dependencies": {
     "axios": "^1.11.0",
+    "csv-parse": "^6.1.0",
     "csv-parser": "^3.2.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "leaflet": "^1.9.4",
     "openai": "^5.16.0",
+    "papaparse": "^5.5.3",
     "prop-types": "^15.8.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

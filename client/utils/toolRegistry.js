@@ -24,7 +24,7 @@ export const TOOL_SPEC = [
   {
     type: "function",
     name: "data_analyzer",
-    description: "Runs code to perform calculations, analyze data, generate or transform files, and create visualizations whenever a request requires computation or programmatic processing beyond text reasoning.",
+    description: "Runs code to perform calculations, analyze data, generate or transform files, and create visualizations whenever a request requires computation or programmatic processing beyond text reasoning. This tool has the users's store data. If the user wants to analyze their data use this tool.",
     parameters: {
       type: "object",
       properties: {
