@@ -1,11 +1,20 @@
 // client/hooks/useRealtime.jsx
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { BASE_URL, MODEL } from '../../config.js';
 import { TOOL_SPEC, runToolByName } from '../utils/toolRegistry.js';
 
 export default function useRealtime() {
   const [status, setStatus] = useState('idle'); // idle | connecting | connected | error
   const [muted, setMuted] = useState(false);
+
+  // Spanish labels for UI only (keep internal status values unchanged)
+  const STATUS_LABELS_ES = {
+    idle: 'Inactivo',
+    connecting: 'Conectando',
+    connected: 'Conectado',
+    error: 'Error',
+  };
+  const statusLabel = useMemo(() => STATUS_LABELS_ES[status] ?? status, [status]);
 
   // Sstructured events for UI
   const [events, setEvents] = useState([]);
@@ -223,7 +232,8 @@ export default function useRealtime() {
   useEffect(() => () => disconnect(), [disconnect]);
 
   return {
-    status,
+    status,        // original machine value (unchanged)
+    statusLabel,   // Spanish UI label
     muted,
     events,
     connect,

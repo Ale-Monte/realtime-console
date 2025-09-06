@@ -1,5 +1,5 @@
 // DockPanel.jsx
-import React, { useMemo, useState, useId, useEffect } from "react";
+import React, { useMemo, useState, useId, useEffect, useRef } from "react";
 
 // (unchanged) helper — optional, but handy if you’ll use it again
 export function selectLatestAssistantFields(events = []) {
@@ -135,7 +135,7 @@ function CSVPreview({ csvUrl: csvUrlProp }) {
   return (
     <div className="dock-default-pane dock-csv">
 
-      <div className="dock-csv__scroller" role="region" aria-label="CSV preview" tabIndex={0}>
+      <div className="dock-csv__scroller" role="region" aria-label="CSV preview">
         <table className="dock-csv__table" role="table">
           {headers.length > 0 && (
             <thead>
@@ -187,12 +187,19 @@ export default function DockPanel({
   const [open, setOpen] = useState(defaultOpen);
   const [expanded, setExpanded] = useState(defaultExpanded);
 
-  /* ✨ NEW: parsed assistant fields */
+  /* Loading state for data_analyzer + refs to track matching call_ids + progress */
+  const [loadingAnalyzer, setLoadingAnalyzer] = useState(false);
+  const pendingAnalyzerRef = useRef(new Set());
+  const processedIndexRef = useRef(0);
+
+  /* Parsed assistant fields */
   const latestAssistant = useMemo(() => selectLatestAssistantFields(events), [events]);
+  // Track previous event count to detect new incoming events
+  const prevEventCountRef = useRef(events?.length ?? 0);
 
   const title = "Análisis de Datos";
 
-  /* ✨ add latestAssistant to ctx */
+  /* Add latestAssistant to ctx */
   const ctx = { events, latestAssistant, expanded };
 
   // Render body content when custom tabs are NOT used
@@ -264,6 +271,60 @@ export default function DockPanel({
       : (userTabs ?? [])[0]?.id ?? "data"
   );
 
+  // (REMOVED) Auto-jump when a new event arrives
+
+  /* Detect data_analyzer start/finish from the streamed events */
+  useEffect(() => {
+    const curr = events?.length ?? 0;
+    const prev = processedIndexRef.current || 0;
+    if (curr <= prev) return; // nothing new
+
+    const newEvents = events.slice(prev, curr);
+
+    for (const ev of newEvents) {
+      // 1) Assistant proposes function calls (from response.done)
+      if (ev?.type === "response.done") {
+        const output = ev?.response?.output ?? [];
+        for (const item of output) {
+          if (
+            item?.type === "function_call" &&
+            item?.name === "data_analyzer" &&
+            item?.call_id
+          ) {
+            pendingAnalyzerRef.current.add(item.call_id);
+            setLoadingAnalyzer(true);
+          }
+        }
+      }
+
+      // 2) Server echoes tool output (function_call_output)
+      if (
+        ev?.type === "conversation.item.created" &&
+        ev?.item?.type === "function_call_output"
+      ) {
+        const callId = ev.item.call_id;
+        if (pendingAnalyzerRef.current.has(callId)) {
+          pendingAnalyzerRef.current.delete(callId);
+          if (pendingAnalyzerRef.current.size === 0) {
+            setLoadingAnalyzer(false);
+          }
+
+          // NEW: decide which tab to show based on the data_analyzer's output payload
+          const paths =
+            extractPathsFromOutputPayload(ev.item.output) ||
+            extractPathsFromOutputPayload(ev.item.result) ||
+            extractPathsFromOutputPayload(ev.item.data) ||
+            [];
+
+          const targetId = pickTargetTabId(paths.length > 0, effectiveTabs);
+          if (targetId) setActiveId(targetId);
+        }
+      }
+    }
+
+    processedIndexRef.current = curr; // advance processed pointer
+  }, [events, effectiveTabs]); // NEW: include effectiveTabs so fallback works with custom tabs
+
   const activeIndex = (userTabs ?? []).concat(
     userTabs ? [] : [{ id: "data" }, { id: "analysis" }, { id: "graphs" }]
   ).findIndex(t => t.id === activeId);
@@ -286,6 +347,37 @@ export default function DockPanel({
   }
 
   const currentTab = effectiveTabs.find(t => t.id === activeId) ?? effectiveTabs[0];
+
+  // NEW: helpers used to choose the tab on tool output
+  function extractPathsFromOutputPayload(payload) {
+    const tryObjects = Array.isArray(payload) ? payload : [payload];
+    for (const part of tryObjects) {
+      let obj = part;
+      if (typeof part === "string") {
+        try { obj = JSON.parse(part); } catch { obj = null; }
+      }
+      if (!obj || typeof obj !== "object") continue;
+
+      let paths =
+        obj.file_paths ??
+        obj.file_path ??
+        obj.data?.file_paths ??
+        obj.data?.file_path ??
+        null;
+
+      if (paths != null) {
+        if (!Array.isArray(paths)) paths = [paths];
+        return paths.filter(Boolean).map(String);
+      }
+    }
+    return [];
+  }
+
+  function pickTargetTabId(hasPaths, effectiveTabsList) {
+    const preferred = hasPaths ? "graphs" : "analysis";
+    if (effectiveTabsList.some(t => t.id === preferred)) return preferred;
+    return effectiveTabsList[0]?.id ?? null;
+  }
 
   return (
     <div
@@ -346,26 +438,8 @@ export default function DockPanel({
                 aria-selected={selected}
                 aria-controls={`${baseId}-panel-${t.id}`}
                 id={`${baseId}-tab-${t.id}`}
-                tabIndex={selected ? 0 : -1}
                 className={`dock-tabs__btn${selected ? " is-active" : ""}`}
                 onClick={() => setActiveId(t.id)}
-                onKeyDown={(e) => {
-                  const all = effectiveTabs;
-                  const activeIndex = all.findIndex(x => x.id === activeId);
-                  if (e.key === "ArrowRight") {
-                    e.preventDefault();
-                    const next = (activeIndex + 1) % all.length;
-                    setActiveId(all[next].id);
-                  } else if (e.key === "ArrowLeft") {
-                    e.preventDefault();
-                    const prev = (activeIndex - 1 + all.length) % all.length;
-                    setActiveId(all[prev].id);
-                  } else if (e.key === "Home") {
-                    e.preventDefault(); setActiveId(all[0].id);
-                  } else if (e.key === "End") {
-                    e.preventDefault(); setActiveId(all[all.length - 1].id);
-                  }
-                }}
                 title={t.label}
               >
                 <span className="dock-tabs__label">{t.label}</span>
@@ -374,6 +448,45 @@ export default function DockPanel({
           })}
         </div>
       </div>
+
+      {/* Full-screen loading overlay while data_analyzer runs */}
+      {loadingAnalyzer && (
+        <div
+          className="dock-loading-overlay"
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            color: "white",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: 24,
+            textAlign: "center",
+            backdropFilter: "blur(1px)",
+          }}
+        >
+          <div>
+            <div
+              aria-hidden="true"
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                border: "4px solid rgba(255,255,255,0.4)",
+                borderTopColor: "white",
+                margin: "0 auto 12px",
+                animation: "spin 1s linear infinite",
+              }}
+            />
+            <div style={{ fontSize: 18, fontWeight: 600 }}>Analizando datos…</div>
+          </div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
     </div>
   );
 }

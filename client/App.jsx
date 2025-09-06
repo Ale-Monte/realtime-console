@@ -10,27 +10,28 @@ import DockPanel from './components/DockPanel';
 export default function App() {
   const {
     status,
+    statusLabel,
     muted,
     events,
     connect,
     disconnect,
     toggleMute,
     audioRef,
-  } = useRealtime();
+  } = useRealtime({ locale: 'es' });
 
   return (
     <div className="app">
       <div className="app-main">
-        <h1>Realtime AI Conversation</h1>
+        <h1>Lupita</h1>
         <AudioSink audioRef={audioRef} />
-        <EventLog status={status} events={events} />
+        <EventLog status={status} statusLabel={statusLabel} events={events} />
       </div>
 
       {/* New right-side map panel */}
-      <MapPanel events={events}/>
+      <MapPanel events={events} />
 
-      {/* New lef-side panel */}
-      <DockPanel events={events}/>
+      {/* New left-side panel */}
+      <DockPanel events={events} />
 
       {/* Stick this to the bottom */}
       <Controls

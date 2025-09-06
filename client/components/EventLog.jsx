@@ -6,10 +6,10 @@ import getUtterances from "../utils/logger.js"; // expects { id, role: 'user'|'a
 function ConversationTurn({ turn, rawEvent }) {
   const [open, setOpen] = useState(false);
   const label = turn.role === "user"
-   ? "You"
+   ? "Usuario"
    : turn.role === "assistant"
-   ? "Assistant"
-   : "Tool"; // handle "tool"
+   ? "Lupita"
+   : "Herramienta"; // handle "tool"
 
   return (
     <div className={`turn ${turn.role}`} data-open={open ? "true" : "false"}>
@@ -48,7 +48,7 @@ ConversationTurn.propTypes = {
   rawEvent: PropTypes.object, // original event for this turn (shown when expanded)
 };
 
-export default function EventLog({ status, events = [] }) {
+export default function EventLog({ status, statusLabel, events = [] }) {
   // Build compact conversation turns
   const turns = useMemo(() => getUtterances(events), [events]);
 
@@ -85,14 +85,15 @@ export default function EventLog({ status, events = [] }) {
   return (
     <section className="event-log" aria-label="Event log">
       <div className="status-pill" data-status={status} role="status" aria-live="polite">
-        Status: {status ?? "—"}
+        {/* Keep data-status as the machine value for styling/logic */}
+        Estado: {statusLabel ?? status ?? "—"}
       </div>
 
-      <h3 className="heading">Conversation</h3>
+      <h3 className="heading">Conversación</h3>
 
       <div className="events-container" aria-live="polite">
         {turns.length === 0 ? (
-          <div className="empty">Awaiting conversation…</div>
+          <div className="empty">Esperando conversación……</div>
         ) : (
           turns.map(t => (
             <ConversationTurn
@@ -109,5 +110,6 @@ export default function EventLog({ status, events = [] }) {
 
 EventLog.propTypes = {
   status: PropTypes.string,
+  statusLabel: PropTypes.string,
   events: PropTypes.arrayOf(PropTypes.object),
 };

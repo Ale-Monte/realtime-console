@@ -11,14 +11,14 @@ export default function Controls({ status, muted, onConnect, onDisconnect, onTog
             onClick={onConnect}
             disabled={status === 'connecting'}
           >
-            {status === 'connecting' ? 'Connecting…' : 'Connect'}
+            {status === 'connecting' ? 'Conectando…' : 'Conectar'}
           </button>
         ) : (
           <button
             className="btn btn--state-disconnect"
             onClick={onDisconnect}
           >
-            Disconnect
+            Desconectar
           </button>
         )}
 
@@ -27,7 +27,7 @@ export default function Controls({ status, muted, onConnect, onDisconnect, onTog
           onClick={onToggleMute}
           disabled={status !== 'connected'}
         >
-          {muted ? 'Unmute mic' : 'Mute mic'}
+          {muted ? 'Activar micrófono' : 'Silenciar micrófono'}
         </button>
       </div>
     </div>

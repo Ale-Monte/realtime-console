@@ -139,7 +139,7 @@ export default function MapPanel({ events = [], className = "" }) {
         aria-label="Open locations map"
         className="map-fab"
       >
-        Map
+        Mapa
       </button>
     );
   }
