@@ -9,6 +9,8 @@ import {
 } from './config.js';
 import checaPreciosRouter from './routes/checaPrecios.js'; // Gets the default export from checaPrecios.js which is the router (import name can be anything)
 import dataAnalyzerRouter, { initPersistentContainer } from './routes/dataAnalyzer.js';
+import webSearchingRouter from './routes/websearching.js';
+import ragRouter from './routes/rag.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +37,8 @@ app.use("/images", express.static(path.join(process.cwd(), "images")));
 await initPersistentContainer();
 app.use('/api/checaprecios', checaPreciosRouter); // If any call goes to api/embeddings, send to embeddingsRouter
 app.use('/api/dataanalyzer', dataAnalyzerRouter); // NEW: mount the data analyzer router
+app.use('/api/websearching', webSearchingRouter);
+app.use('/api/rag', ragRouter);
 
 // --- API: mint ephemeral Realtime session token (server-side standard API key) ---
 app.get('/session', async (_req, res) => {
