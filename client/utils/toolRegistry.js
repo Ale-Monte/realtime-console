@@ -23,21 +23,6 @@ export const TOOL_SPEC = [
   },
   {
     type: "function",
-    name: "data_analyzer",
-    description: "Runs code to perform calculations, analyze data, generate or transform files, and create visualizations whenever a request requires computation or programmatic processing beyond text reasoning. This tool has the users's store data. If the user wants to analyze their data use this tool.",
-    parameters: {
-      type: "object",
-      properties: {
-        user_query: {
-          type: "string",
-          description: "The user's request describing what they want analyzed or calculated",
-        }
-      },
-      required: ["user_query"]
-    }
-  },
-  {
-    type: "function",
     name: "create_embeddings",
     description: "Create vector embeddings for one or more texts using the backend.",
     parameters: {
@@ -63,20 +48,6 @@ export const TOOL_SPEC = [
         }
       },
       required: ["input"]
-    }
-  },
-  {
-    type: "function",
-    name: "checa_precios",
-    description: "Show the prices of the specified product from the three closest stores.",
-    parameters: {
-      type: "object",
-      properties: {
-        item: {
-          description: "The item the user wants to check prices for.",
-        }
-      },
-      required: ["item"]
     }
   },
   {

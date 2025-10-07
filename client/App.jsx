@@ -28,10 +28,10 @@ export default function App() {
       </div>
 
       {/* New right-side map panel */}
-      <MapPanel events={events} />
+      {/* <MapPanel events={events} /> */}
 
       {/* New left-side panel */}
-      <DockPanel events={events} />
+      {/* <DockPanel events={events} /> */}
 
       {/* Stick this to the bottom */}
       <Controls
