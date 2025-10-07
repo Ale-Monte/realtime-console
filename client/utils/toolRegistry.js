@@ -23,21 +23,6 @@ export const TOOL_SPEC = [
   },
   {
     type: "function",
-    name: "data_analyzer",
-    description: "Runs code to perform calculations, analyze data, generate or transform files, and create visualizations whenever a request requires computation or programmatic processing beyond text reasoning. This tool has the users's store data. If the user wants to analyze their data use this tool.",
-    parameters: {
-      type: "object",
-      properties: {
-        user_query: {
-          type: "string",
-          description: "The user's request describing what they want analyzed or calculated",
-        }
-      },
-      required: ["user_query"]
-    }
-  },
-  {
-    type: "function",
     name: "create_embeddings",
     description: "Create vector embeddings for one or more texts using the backend.",
     parameters: {
@@ -67,16 +52,40 @@ export const TOOL_SPEC = [
   },
   {
     type: "function",
-    name: "checa_precios",
-    description: "Show the prices of the specified product from the three closest stores.",
+    name: "web_searching",
+    description: "Use this tool to search the web for recent information on a topic. Useful when you need to find current events, news, or updates that may not be in the model's training data.",
     parameters: {
       type: "object",
       properties: {
-        item: {
-          description: "The item the user wants to check prices for.",
+        message: {
+          type: "string",
+          description: "The user's request describing what they want to search for on the web or information they want to find.",
+        },
+        user: {
+          type: "string",
+          description: "Este siempre debe ser 'Lupita Web Search'.",
         }
       },
-      required: ["item"]
+      required: ["message", "user"]
+    }
+  },
+  {
+    type: "function",
+    name: "rag",
+      "description": "This function is triggered when the user asks questions related to business models, growth strategies, optimization, inventory management, or ways to improve and scale a local business. It leverages retrieval-augmented generation (RAG) to provide strategic recommendations and actionable suggestions.",
+    parameters: {
+      type: "object",
+      properties: {
+        message: {
+          type: "string",
+          "description": "A user request asking for a business recommendation, suggestion, or strategy focused on growing, improving, or optimizing a local store or business operation."
+        },
+        user: {
+          type: "string",
+          "description": "Este siempre debe ser 'Lupita RAG'."
+        }
+      },
+      required: ["message", "user"]
     }
   }
 ];
@@ -153,16 +162,43 @@ export async function data_analyzer(query) {
   return res.json();
 }
 
+export async function web_searching(query) {
+  const { user, message } = query;
+  const res = await fetch("/api/websearching", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user, message }),
+  });
+
+  if (!res.ok) throw new Error("Failed to fetch web search results");
+  return res.json();
+}
+
+export async function rag(query) {
+  const { user, message } = query;
+  const res = await fetch("/api/rag", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user, message }),
+  });
+
+  if (!res.ok) throw new Error("Failed to fetch web search results");
+  return res.json();
+}
+
 // --- Simple registry/dispatcher ---
 const registry = {
   generate_horoscope,
   create_embeddings,
   checa_precios,
-  data_analyzer
+  data_analyzer,
+  web_searching,
+  rag
 };
 
 export async function runToolByName(name, args) {
   const fn = registry[name];
+  console.log("runToolByName", name, args);
   if (!fn) {
     throw new Error(`Unknown tool: ${name}`);
   }
