@@ -4,54 +4,6 @@
 export const TOOL_SPEC = [
   {
     type: "function",
-    name: "generate_horoscope",
-    description: "Give today's horoscope for an astrological sign.",
-    parameters: {
-      type: "object",
-      properties: {
-        sign: {
-          type: "string",
-          description: "The sign for the horoscope.",
-          enum: [
-            "Aries","Taurus","Gemini","Cancer","Leo","Virgo",
-            "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"
-          ]
-        }
-      },
-      required: ["sign"]
-    }
-  },
-  {
-    type: "function",
-    name: "create_embeddings",
-    description: "Create vector embeddings for one or more texts using the backend.",
-    parameters: {
-      type: "object",
-      properties: {
-        input: {
-          description: "A single string or an array of strings to embed.",
-          oneOf: [
-            { type: "string" },
-            { type: "array", items: { type: "string" }, minItems: 1 }
-          ]
-        },
-        model: {
-          type: "string",
-          description: "Embedding model to use (default: text-embedding-3-small).",
-          default: "text-embedding-3-small"
-        },
-        encoding_format: {
-          type: "string",
-          description: "Embedding format: 'float' or 'base64' (default: float).",
-          enum: ["float", "base64"],
-          default: "float"
-        }
-      },
-      required: ["input"]
-    }
-  },
-  {
-    type: "function",
     name: "web_searching",
     description: "Use this tool to search the web for recent information on a topic. Useful when you need to find current events, news, or updates that may not be in the model's training data.",
     parameters: {
