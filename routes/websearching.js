@@ -7,7 +7,7 @@ router.post("/", async (req, res) => {
   try {
     const { message, user } = req.body ?? {};
 
-    const url = "https://brunoalfra.app.n8n.cloud/webhook-test/6a8109de-b6cc-4c2f-9e92-03986257c04a";
+    const url = "https://eduardoporto.app.n8n.cloud/webhook-test/66a3b2f4-b4ee-4734-8e35-7d0450a02a04";
     const payload = { message, user };
 
     const n8nResponse = await axios.post(url, payload, {
