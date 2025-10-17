@@ -3,9 +3,14 @@ import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { BASE_URL, MODEL } from '../../config.js';
 import { TOOL_SPEC, runToolByName } from '../utils/toolRegistry.js';
 
-export default function useRealtime() {
+export default function useRealtime(language) {
   const [status, setStatus] = useState('idle'); // idle | connecting | connected | error
   const [muted, setMuted] = useState(false);
+  const currentLocaleRef = useRef(language);
+
+  useEffect(() => {
+    currentLocaleRef.current = language;
+  }, [language]);
 
   // Spanish labels for UI only (keep internal status values unchanged)
   const STATUS_LABELS_ES = {
@@ -52,8 +57,10 @@ export default function useRealtime() {
     setStatus('connecting');
 
     try {
+      const currentLocale = currentLocaleRef.current;
       // 1) Fetch ephemeral token from server (expires ~60s)
-      const tokenRes = await fetch('/session');
+      console.log("NEW Connecting with locale:", currentLocale);
+      const tokenRes = await fetch(`/session?lang=${encodeURIComponent(currentLocale)}`);
       const tokenJson = await tokenRes.json();
       if (!tokenRes.ok) throw new Error(tokenJson.error || 'Failed to get session token');
       const EPHEMERAL_KEY = tokenJson?.client_secret?.value;
@@ -206,7 +213,7 @@ export default function useRealtime() {
     }
   }, [status, pushEvent, makeClientEvent, send]);
 
-  const disconnect = useCallback(() => {
+  const disconnect = useCallback(async () => {
     try {
       dcRef.current?.close();
       pcRef.current?.getSenders()?.forEach((s) => s.track && s.track.stop());
@@ -229,6 +236,17 @@ export default function useRealtime() {
     pushEvent(makeClientEvent(track.enabled ? 'mic.unmuted' : 'mic.muted'));
   }, [pushEvent, makeClientEvent]);
 
+  const restartSession = useCallback(async () => {
+    console.log("Restarting session with locale:", currentLocaleRef.current);
+    await disconnect();
+  }, [disconnect, connect]);
+
+  useEffect(() => {
+    if (status === 'connected') {
+      restartSession();
+    }
+  }, [language]);
+
   useEffect(() => () => disconnect(), [disconnect]);
 
   return {
@@ -239,6 +257,7 @@ export default function useRealtime() {
     connect,
     disconnect,
     toggleMute,
+    restartSession,
     audioRef,
   };
 }
