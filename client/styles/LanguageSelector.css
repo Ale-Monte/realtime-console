@@ -43,7 +43,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   z-index: 10;
-  width: 200px;
+  width: 225px;
   animation: fadeIn 0.15s ease-in;
 }
 
