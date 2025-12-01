@@ -9,7 +9,7 @@ import DockPanel from './components/DockPanel';
 import LanguageSelector from './components/LanguageSelector';
 
 export default function App() {
-  const [language, setLanguage] = useState("es-MX");
+  const [language, setLanguage] = useState("es-MX-CDMX");
 
   useEffect(() => {
     const savedLang = localStorage.getItem("preferredLanguage");
