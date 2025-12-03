@@ -20,7 +20,7 @@ const LanguageSelector = ({ selectedLang, onChange }) => {
 
   //https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/index.json
 
-  const currentLang = languages.find(lang => lang.code === selectedLang);
+  const currentLang = languages.find(lang => lang.code === selectedLang) || languages[0];
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -59,7 +59,7 @@ const LanguageSelector = ({ selectedLang, onChange }) => {
               onClick={() => handleSelect(lang.code)}
             >
               <img src={`https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/${lang.flag}.svg`} alt={lang.name} className="flag-icon" />
-              <span style={{ whiteSpace: 'pre-line' }}>{lang.name}</span>              
+              <span style={{ whiteSpace: "pre-line" }}>{lang.name}</span>
             </div>
           ))}
         </div>
