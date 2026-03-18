@@ -4,6 +4,21 @@
 export const TOOL_SPEC = [
   {
     type: "function",
+    name: "data_analyzer",
+    description: "Use this tool when the user wants analysis of the store dataset, trends, summaries, comparisons, or charts based on the CSV data available in the app.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "The user's data-analysis request about the store dataset. Ask for the exact metric, trend, comparison, or chart needed.",
+        }
+      },
+      required: ["query"]
+    }
+  },
+  {
+    type: "function",
     name: "web_searching",
     description: "Use this tool to search the web for recent information on a topic. Useful when you need to find current events, news, or updates that may not be in the model's training data.",
     parameters: {
@@ -104,10 +119,17 @@ export async function checa_precios(query) {
 }
 
 export async function data_analyzer(query) {
+  const payload =
+    typeof query === "string"
+      ? { query }
+      : query && typeof query === "object"
+        ? query
+        : { query: String(query ?? "") };
+
   const res = await fetch("/api/dataanalyzer", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) throw new Error("Failed to fetch data analysis");

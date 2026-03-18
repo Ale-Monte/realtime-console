@@ -66,7 +66,7 @@ app.get('/session', async (req, res) => {
       body: JSON.stringify({
         model: MODEL,
         voice: VOICE,
-        instructions: INSTRUCTIONS_DICT[language] || INSTRUCTIONS_DICT[localStorage.getItem('lang')],
+        instructions: INSTRUCTIONS_DICT[language] || INSTRUCTIONS_DICT["es-MX-CDMX"],
         speed: SPEED,
         tool_choice: TOOL_CHOICE,
         input_audio_transcription: INPUT_AUDIO_TRANSCRIPTION,

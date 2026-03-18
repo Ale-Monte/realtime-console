@@ -49,8 +49,7 @@ export default function App() {
       {/* New right-side map panel */}
       {/* <MapPanel events={events} /> */}
 
-      {/* New left-side panel */}
-      {/* <DockPanel events={events} /> */}
+      <DockPanel events={events} />
 
       {/* Stick this to the bottom */}
       <Controls
