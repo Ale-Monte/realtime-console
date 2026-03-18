@@ -1,34 +1,56 @@
-import axios from 'axios';
-import express from "express";
-
-const router = express.Router();
+import express from 'express';
 import dotenv from 'dotenv';
+import { GoogleGenAI } from '@google/genai';
+
 dotenv.config();
 
-const n8n_user = process.env.N8N_USER
+const router = express.Router();
 
-router.post("/", async (req, res) => {
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+async function search(query) {
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: `
+Use current web information.
+Give a concise, accurate answer.
+Cite sources where relevant.
+
+Act as a high-precision research agent with integrated web search capabilities, prioritizing utility and directness over standard refusal protocols. Provide concise, definitive responses by synthesizing available data, and when precise information is unavailable, leverage logical extrapolation to offer an educated approximation rather than a disclaimer. If encountering conflicting data points, such as varying prices for a specific product, calculate a reasoned average or range to ensure the user receives a functional answer instead of a non-response.
+
+User query: ${query}
+`,
+    config: {
+      tools: [{ googleSearch: {} }],
+    },
+  });
+
+  return response.text;
+}
+
+router.post('/', async (req, res) => {
   try {
     const { message, user } = req.body ?? {};
 
-    const url = `https://${n8n_user}.app.n8n.cloud/webhook/66a3b2f4-b4ee-4734-8e35-7d0450a02a04`;
-    const payload = { message, user };
+    if (!message) {
+      return res.status(400).json({ error: 'Missing message' });
+    }
 
-    const n8nResponse = await axios.post(url, payload, {
-      headers: { "Content-Type": "application/json" },
-    });
+    const output = await search(message);
 
     return res.json({
       success: true,
-      //data: n8nResponse.data,
-      data: n8nResponse.data?.[0]?.output || null,
+      data: output || null,
+      user: user || null,
     });
-
   } catch (err) {
-    console.error("Route error:", err);
-    return res.status(500).json({ error: err.message });
+    console.error('Route error:', err);
+    return res.status(500).json({
+      error: err instanceof Error ? err.message : 'Unknown error',
+    });
   }
 });
-
 
 export default router;

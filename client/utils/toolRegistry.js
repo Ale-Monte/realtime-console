@@ -20,7 +20,7 @@ export const TOOL_SPEC = [
   {
     type: "function",
     name: "web_searching",
-    description: "Use this tool to search the web for recent information on a topic. Useful when you need to find current events, news, or updates that may not be in the model's training data.",
+    description: "Use this tool to search the web for recent information on a topic. Use it when the user asks the price of a product. Useful when you need to find current events, news, or updates that may not be in the model's training data.",
     parameters: {
       type: "object",
       properties: {
