@@ -12,14 +12,24 @@ export default function useRealtime(language) {
     currentLocaleRef.current = language;
   }, [language]);
 
-  // Spanish labels for UI only (keep internal status values unchanged)
-  const STATUS_LABELS_ES = {
-    idle: 'Inactivo',
-    connecting: 'Conectando',
-    connected: 'Conectado',
-    error: 'Error',
-  };
-  const statusLabel = useMemo(() => STATUS_LABELS_ES[status] ?? status, [status]);
+  const statusLabel = useMemo(() => {
+    const isSpanish = String(language).toLowerCase().startsWith('es');
+    const labels = isSpanish
+      ? {
+          idle: 'Inactivo',
+          connecting: 'Conectando',
+          connected: 'Conectado',
+          error: 'Error',
+        }
+      : {
+          idle: 'Idle',
+          connecting: 'Connecting',
+          connected: 'Connected',
+          error: 'Error',
+        };
+
+    return labels[status] ?? status;
+  }, [language, status]);
 
   // Sstructured events for UI
   const [events, setEvents] = useState([]);
@@ -251,7 +261,7 @@ export default function useRealtime(language) {
 
   return {
     status,        // original machine value (unchanged)
-    statusLabel,   // Spanish UI label
+    statusLabel,   // Localized UI label
     muted,
     events,
     connect,

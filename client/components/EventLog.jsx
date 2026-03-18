@@ -1,15 +1,41 @@
-// EventLog.jsx
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
-import getUtterances from "../utils/logger.js"; // expects { id, role: 'user'|'assistant', text, at }
+import getUtterances from "../utils/logger.js";
 
-function ConversationTurn({ turn, rawEvent }) {
+function getEventLogText(language = "") {
+  if (String(language).toLowerCase().startsWith("es")) {
+    return {
+      eventLogAria: "Registro de eventos",
+      statusPrefix: "Estado:",
+      heading: "Conversación",
+      empty: "Esperando conversación...",
+      user: "Usuario",
+      assistant: "Lupita",
+      tool: "Herramienta",
+      missingStatus: "—",
+    };
+  }
+
+  return {
+    eventLogAria: "Event log",
+    statusPrefix: "Status:",
+    heading: "Conversation",
+    empty: "Waiting for conversation...",
+    user: "User",
+    assistant: "Lupita",
+    tool: "Tool",
+    missingStatus: "—",
+  };
+}
+
+function ConversationTurn({ turn, rawEvent, text }) {
   const [open, setOpen] = useState(false);
-  const label = turn.role === "user"
-   ? "Usuario"
-   : turn.role === "assistant"
-   ? "Lupita"
-   : "Herramienta"; // handle "tool"
+  const label =
+    turn.role === "user"
+      ? text.user
+      : turn.role === "assistant"
+        ? text.assistant
+        : text.tool;
 
   return (
     <div className={`turn ${turn.role}`} data-open={open ? "true" : "false"}>
@@ -17,12 +43,12 @@ function ConversationTurn({ turn, rawEvent }) {
         type="button"
         className="turn-row"
         aria-expanded={open}
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen((v) => !v)}
       >
         <div className="role">{label}</div>
         <div className="text">
-         {typeof turn.text === "string" ? turn.text : JSON.stringify(turn.text)}
-         </div>
+          {typeof turn.text === "string" ? turn.text : JSON.stringify(turn.text)}
+        </div>
         <time className="timestamp" dateTime={turn.at}>
           {new Date(turn.at).toLocaleString()}
         </time>
@@ -30,7 +56,7 @@ function ConversationTurn({ turn, rawEvent }) {
 
       <div className="turn-details" hidden={!open}>
         <pre className="turn-json">
-{JSON.stringify(rawEvent ?? {}, null, 2)}
+          {JSON.stringify(rawEvent ?? {}, null, 2)}
         </pre>
       </div>
     </div>
@@ -41,33 +67,32 @@ ConversationTurn.propTypes = {
   turn: PropTypes.shape({
     id: PropTypes.string.isRequired,
     role: PropTypes.oneOf(["user", "assistant", "tool"]).isRequired,
-    // Tool outputs might not be plain strings once you start passing objects
     text: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
     at: PropTypes.string.isRequired,
   }).isRequired,
-  rawEvent: PropTypes.object, // original event for this turn (shown when expanded)
+  rawEvent: PropTypes.object,
+  text: PropTypes.shape({
+    user: PropTypes.string.isRequired,
+    assistant: PropTypes.string.isRequired,
+    tool: PropTypes.string.isRequired,
+  }).isRequired,
 };
 
-export default function EventLog({ status, statusLabel, events = [] }) {
-  // Build compact conversation turns
+export default function EventLog({ status, statusLabel, events = [], language = "" }) {
   const turns = useMemo(() => getUtterances(events), [events]);
+  const text = useMemo(() => getEventLogText(language), [language]);
 
-  // Fast lookup from event_id -> raw event (so we can show JSON on expand)
   const eventById = useMemo(() => {
     const m = new Map();
     for (const ev of events) m.set(ev.event_id, ev);
     return m;
   }, [events]);
 
-  // Auto-scroll to the latest turn
   const prevCount = useRef(0);
 
   useEffect(() => {
-    // Only autoscroll when new items are added
     if (turns.length > prevCount.current) {
       const prefersReduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-      // Optional: only autoscroll if user is already near the bottom
       const nearBottom =
         window.innerHeight + window.scrollY >=
         document.documentElement.scrollHeight - 200;
@@ -83,23 +108,23 @@ export default function EventLog({ status, statusLabel, events = [] }) {
   }, [turns.length]);
 
   return (
-    <section className="event-log" aria-label="Event log">
+    <section className="event-log" aria-label={text.eventLogAria}>
       <div className="status-pill" data-status={status} role="status" aria-live="polite">
-        {/* Keep data-status as the machine value for styling/logic */}
-        Estado: {statusLabel ?? status ?? "—"}
+        {text.statusPrefix} {statusLabel ?? status ?? text.missingStatus}
       </div>
 
-      <h3 className="heading">Conversación</h3>
+      <h3 className="heading">{text.heading}</h3>
 
       <div className="events-container" aria-live="polite">
         {turns.length === 0 ? (
-          <div className="empty">Esperando conversación……</div>
+          <div className="empty">{text.empty}</div>
         ) : (
-          turns.map(t => (
+          turns.map((t) => (
             <ConversationTurn
               key={t.id}
               turn={t}
               rawEvent={eventById.get(t.id)}
+              text={text}
             />
           ))
         )}
@@ -112,4 +137,5 @@ EventLog.propTypes = {
   status: PropTypes.string,
   statusLabel: PropTypes.string,
   events: PropTypes.arrayOf(PropTypes.object),
+  language: PropTypes.string,
 };

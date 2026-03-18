@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
 import {
-  BASE_URL, MODEL, VOICE, INSTRUCTIONS, SPEED, TOOL_CHOICE, INPUT_AUDIO_TRANSCRIPTION
+  BASE_URL, MODEL, VOICE, INSTRUCTIONS, SPEED, TOOL_CHOICE, getInputAudioTranscription
 } from './config.js';
 import checaPreciosRouter from './routes/checaPrecios.js'; // Gets the default export from checaPrecios.js which is the router (import name can be anything)
 import dataAnalyzerRouter, { initPersistentContainer } from './routes/dataAnalyzer.js';
@@ -57,6 +57,7 @@ const INSTRUCTIONS_DICT = {
 app.get('/session', async (req, res) => {
   try {
     const language = req.query.lang;
+    const inputAudioTranscription = getInputAudioTranscription(language);
     const r = await fetch(`${BASE_URL}/sessions`, {
       method: 'POST',
       headers: {
@@ -69,7 +70,7 @@ app.get('/session', async (req, res) => {
         instructions: INSTRUCTIONS_DICT[language] || INSTRUCTIONS_DICT["es-MX-CDMX"],
         speed: SPEED,
         tool_choice: TOOL_CHOICE,
-        input_audio_transcription: INPUT_AUDIO_TRANSCRIPTION,
+        input_audio_transcription: inputAudioTranscription,
         include: ['item.input_audio_transcription.logprobs'],
       }),
     });

@@ -1,7 +1,36 @@
 // components/Controls.jsx
 import React from 'react';
 
-export default function Controls({ status, muted, onConnect, onDisconnect, onToggleMute }) {
+function getControlsText(language = '') {
+  if (String(language).toLowerCase().startsWith('es')) {
+    return {
+      connecting: 'Conectando...',
+      connect: 'Conectar',
+      disconnect: 'Desconectar',
+      unmute: 'Activar micrófono',
+      mute: 'Silenciar micrófono',
+    };
+  }
+
+  return {
+    connecting: 'Connecting...',
+    connect: 'Connect',
+    disconnect: 'Disconnect',
+    unmute: 'Unmute microphone',
+    mute: 'Mute microphone',
+  };
+}
+
+export default function Controls({
+  status,
+  muted,
+  onConnect,
+  onDisconnect,
+  onToggleMute,
+  language = '',
+}) {
+  const text = getControlsText(language);
+
   return (
     <div className="controls">
       <div className="controls-inner">
@@ -11,14 +40,14 @@ export default function Controls({ status, muted, onConnect, onDisconnect, onTog
             onClick={onConnect}
             disabled={status === 'connecting'}
           >
-            {status === 'connecting' ? 'Conectando…' : 'Conectar'}
+            {status === 'connecting' ? text.connecting : text.connect}
           </button>
         ) : (
           <button
             className="btn btn--state-disconnect"
             onClick={onDisconnect}
           >
-            Desconectar
+            {text.disconnect}
           </button>
         )}
 
@@ -27,7 +56,7 @@ export default function Controls({ status, muted, onConnect, onDisconnect, onTog
           onClick={onToggleMute}
           disabled={status !== 'connected'}
         >
-          {muted ? 'Activar micrófono' : 'Silenciar micrófono'}
+          {muted ? text.unmute : text.mute}
         </button>
       </div>
     </div>

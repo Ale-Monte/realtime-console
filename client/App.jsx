@@ -43,13 +43,13 @@ export default function App() {
           <LanguageSelector selectedLang={language} onChange={handleLanguageChange} />
         </div>
         <AudioSink audioRef={audioRef} />
-        <EventLog status={status} statusLabel={statusLabel} events={events} />
+        <EventLog status={status} statusLabel={statusLabel} events={events} language={language} />
       </div>
 
       {/* New right-side map panel */}
       {/* <MapPanel events={events} /> */}
 
-      <DockPanel events={events} />
+      <DockPanel events={events} language={language} />
 
       {/* Stick this to the bottom */}
       <Controls
@@ -58,6 +58,7 @@ export default function App() {
         onConnect={connect}
         onDisconnect={disconnect}
         onToggleMute={toggleMute}
+        language={language}
       />
     </div>
   );

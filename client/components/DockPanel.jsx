@@ -1,12 +1,63 @@
-// DockPanel.jsx
 import React, { useMemo, useState, useId, useEffect, useRef } from "react";
 
-// (unchanged) helper — optional, but handy if you’ll use it again
+function getDockText(language = "") {
+  if (String(language).toLowerCase().startsWith("es")) {
+    return {
+      title: "Análisis de Datos",
+      dataTab: "Datos",
+      analysisTab: "Análisis",
+      graphsTab: "Gráficas",
+      analysisHeading: "Análisis",
+      graphsHeading: "Gráficas",
+      analysisPrompt: "Solicita analizar los datos de tu tienda.",
+      graphsPrompt: "Solicita crear una gráfica de tus ventas.",
+      fabLabel: "Análisis",
+      loading: "Analizando datos...",
+      csvPreviewAria: "Vista previa del CSV",
+      moreRows: "Hay más filas en el archivo; solo se muestran las primeras 100 para vista previa.",
+      graphAlt: "Vista previa de la gráfica",
+      openDockAria: "Open dock panel",
+      dockAria: "Docked panel",
+      restoreAria: "Restore panel size",
+      expandAria: "Expand panel",
+      restoreTitle: "Restore",
+      expandTitle: "Expand",
+      closeAria: "Close dock panel",
+      closeTitle: "Close",
+      tabsAria: "Panel tabs",
+    };
+  }
+
+  return {
+    title: "Data Analysis",
+    dataTab: "Data",
+    analysisTab: "Analysis",
+    graphsTab: "Charts",
+    analysisHeading: "Analysis",
+    graphsHeading: "Charts",
+    analysisPrompt: "Ask to analyze your store data.",
+    graphsPrompt: "Ask to create a chart for your sales.",
+    fabLabel: "Analysis",
+    loading: "Analyzing data...",
+    csvPreviewAria: "CSV preview",
+    moreRows: "There are more rows in the file; only the first 100 are shown for preview.",
+    graphAlt: "Chart preview",
+    openDockAria: "Open dock panel",
+    dockAria: "Docked panel",
+    restoreAria: "Restore panel size",
+    expandAria: "Expand panel",
+    restoreTitle: "Restore",
+    expandTitle: "Expand",
+    closeAria: "Close dock panel",
+    closeTitle: "Close",
+    tabsAria: "Panel tabs",
+  };
+}
+
 export function selectLatestAssistantFields(events = []) {
   for (let i = events.length - 1; i >= 0; i--) {
     const ev = events[i];
 
-    // Build a small set of candidate payloads to inspect
     const candidates = [];
     if (typeof ev === "string") {
       candidates.push(ev);
@@ -19,14 +70,18 @@ export function selectLatestAssistantFields(events = []) {
 
       let obj = c;
       if (typeof c === "string") {
-        try { obj = JSON.parse(c); } catch { obj = null; }
+        try {
+          obj = JSON.parse(c);
+        } catch {
+          obj = null;
+        }
       }
       if (!obj || typeof obj !== "object") continue;
 
-      // Support both file_paths (array or string) and file_path (string)
       const hasAssistant = Object.prototype.hasOwnProperty.call(obj, "assistant_response");
-      const hasPaths = Object.prototype.hasOwnProperty.call(obj, "file_paths")
-                   || Object.prototype.hasOwnProperty.call(obj, "file_path");
+      const hasPaths =
+        Object.prototype.hasOwnProperty.call(obj, "file_paths") ||
+        Object.prototype.hasOwnProperty.call(obj, "file_path");
 
       if (hasAssistant || hasPaths) {
         const assistant_response = String(obj.assistant_response ?? "");
@@ -40,62 +95,63 @@ export function selectLatestAssistantFields(events = []) {
   return { assistant_response: "", file_paths: [] };
 }
 
-/** Lightweight CSV parser that handles quotes, commas, CRLF, and escaped quotes.
- *  Returns up to `limit`+1 rows (including header).
- */
 function parseCSV(text, delimiter = ",", limit = 100) {
   const rows = [];
   let row = [];
   let field = "";
   let inQuotes = false;
 
-  const pushField = () => { row.push(field); field = ""; };
-  const pushRow = () => { rows.push(row); row = []; };
+  const pushField = () => {
+    row.push(field);
+    field = "";
+  };
+  const pushRow = () => {
+    rows.push(row);
+    row = [];
+  };
 
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
 
     if (inQuotes) {
       if (c === '"') {
-        if (text[i + 1] === '"') { field += '"'; i++; } // escaped quote
-        else { inQuotes = false; }
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
       } else {
         field += c;
       }
-    } else {
-      if (c === '"') inQuotes = true;
-      else if (c === delimiter) pushField();
-      else if (c === "\n") {
-        pushField(); pushRow();
-        if (rows.length > limit) break; // header + limit rows
-      } else if (c === "\r") {
-        // ignore; will be handled alongside \n for CRLF
-      } else {
-        field += c;
-      }
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === delimiter) {
+      pushField();
+    } else if (c === "\n") {
+      pushField();
+      pushRow();
+      if (rows.length > limit) break;
+    } else if (c !== "\r") {
+      field += c;
     }
   }
-  // trailing field/row (when file doesn't end with newline)
-  if (field !== "" || row.length) { pushField(); pushRow(); }
+
+  if (field !== "" || row.length) {
+    pushField();
+    pushRow();
+  }
   return rows;
 }
 
 function detectDelimiter(sample) {
-  // very simple heuristic
   if (sample.includes(",")) return ",";
   if (sample.includes("\t")) return "\t";
   if (sample.includes(";")) return ";";
-  return ","; // default
+  return ",";
 }
 
-/** CSVPreview
- *  - Auto-loads CSV from:
- *      1) prop csvUrl (if provided)
- *      2) ?csv=<url> query param
- *      3) /data.csv (default)
- *  - Shows first 100 rows (excluding header)
- */
-function CSVPreview({ csvUrl: csvUrlProp }) {
+function CSVPreview({ csvUrl: csvUrlProp, text }) {
   const [state, setState] = useState({ loading: true, error: null, headers: [], rows: [] });
 
   const resolvedUrl = useMemo(() => {
@@ -105,45 +161,46 @@ function CSVPreview({ csvUrl: csvUrlProp }) {
       const q = u.searchParams.get("csv");
       if (q) return q;
     }
-    return "/data.csv"; // default path (put the file in /public as data.csv)
+    return "/data.csv";
   }, [csvUrlProp]);
 
   useEffect(() => {
     let cancelled = false;
-    setState(s => ({ ...s, loading: true, error: null }));
+    setState((s) => ({ ...s, loading: true, error: null }));
 
     fetch(resolvedUrl, { cache: "no-store" })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status} loading ${resolvedUrl}`);
-        const text = await res.text();
-        const firstChunk = text.slice(0, 2048);
+        const csvText = await res.text();
+        const firstChunk = csvText.slice(0, 2048);
         const delim = detectDelimiter(firstChunk);
-        const all = parseCSV(text, delim, 100); // header + 100 rows
+        const all = parseCSV(csvText, delim, 100);
         const headers = all[0] ?? [];
-        const rows = (all.length > 1 ? all.slice(1) : []);
+        const rows = all.length > 1 ? all.slice(1) : [];
         if (!cancelled) setState({ loading: false, error: null, headers, rows });
       })
       .catch((err) => {
-        if (!cancelled) setState({ loading: false, error: err.message, headers: [], rows: [] });
+        if (!cancelled) {
+          setState({ loading: false, error: err.message, headers: [], rows: [] });
+        }
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [resolvedUrl]);
 
   const { headers, rows } = state;
 
   return (
     <div className="dock-default-pane dock-csv">
-
-      <div className="dock-csv__scroller" role="region" aria-label="CSV preview">
+      <div className="dock-csv__scroller" role="region" aria-label={text.csvPreviewAria}>
         <table className="dock-csv__table" role="table">
           {headers.length > 0 && (
             <thead>
               <tr>
                 {headers.map((h, i) => (
-                  <th key={i}>
-                    {String(h ?? "")}
-                  </th>
+                  <th key={i}>{String(h ?? "")}</th>
                 ))}
               </tr>
             </thead>
@@ -152,9 +209,7 @@ function CSVPreview({ csvUrl: csvUrlProp }) {
             {rows.slice(0, 100).map((r, ri) => (
               <tr key={ri}>
                 {(headers.length ? headers : r).map((_, ci) => (
-                  <td key={ci}>
-                    {String(r[ci] ?? "")}
-                  </td>
+                  <td key={ci}>{String(r[ci] ?? "")}</td>
                 ))}
               </tr>
             ))}
@@ -163,9 +218,7 @@ function CSVPreview({ csvUrl: csvUrlProp }) {
       </div>
 
       {rows.length > 100 && (
-        <p style={{ marginTop: 8, opacity: 0.8 }}>
-          There are more rows in the file; only the first 100 are shown for preview.
-        </p>
+        <p style={{ marginTop: 8, opacity: 0.8 }}>{text.moreRows}</p>
       )}
     </div>
   );
@@ -179,83 +232,68 @@ export default function DockPanel({
   children,
   tabs = null,
   initialTabId = null,
-  /** Optional: let callers override the CSV URL without touching App.jsx
-   *  If not provided, uses ?csv=… or /data.csv
-   */
+  language = "",
   csvUrl = null,
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [expanded, setExpanded] = useState(defaultExpanded);
-
-  /* Loading state for data_analyzer + refs to track matching call_ids + progress */
   const [loadingAnalyzer, setLoadingAnalyzer] = useState(false);
   const pendingAnalyzerRef = useRef(new Set());
   const processedIndexRef = useRef(0);
 
-  /* Parsed assistant fields */
   const latestAssistant = useMemo(() => selectLatestAssistantFields(events), [events]);
-  // Track previous event count to detect new incoming events
-  const prevEventCountRef = useRef(events?.length ?? 0);
+  const text = useMemo(() => getDockText(language), [language]);
+  const title = text.title;
 
-  const title = "Análisis de Datos";
-
-  /* Add latestAssistant to ctx */
   const ctx = { events, latestAssistant, expanded };
+  const fallbackContent = typeof children === "function" ? children(ctx) : children;
 
-  // Render body content when custom tabs are NOT used
-  const fallbackContent =
-    typeof children === "function" ? children(ctx) : children;
-
-  // --- Tabs: force three defaults if none provided ---
   const userTabs =
     Array.isArray(tabs) && tabs.length > 0
-      ? tabs.filter(t => t && t.id && t.label && t.render)
+      ? tabs.filter((t) => t && t.id && t.label && t.render)
       : null;
 
   const effectiveTabs = useMemo(() => {
     const defaults = [
       {
         id: "data",
-        label: "Datos",
-        render: () => <CSVPreview csvUrl={csvUrl} />,
+        label: text.dataTab,
+        render: () => <CSVPreview csvUrl={csvUrl} text={text} />,
       },
       {
         id: "analysis",
-        label: "Análisis",
-        /* ✨ show assistant_response here */
-        render: ({ latestAssistant }) => (
+        label: text.analysisTab,
+        render: ({ latestAssistant: latest }) => (
           <div className="dock-default-pane">
-            <h3>Análisis</h3>
+            <h3>{text.analysisHeading}</h3>
             <div className="analysis-text" style={{ whiteSpace: "pre-wrap" }}>
-              {latestAssistant?.assistant_response || "Solicita analizar los datos de tu tienda."}
+              {latest?.assistant_response || text.analysisPrompt}
             </div>
           </div>
         ),
       },
       {
         id: "graphs",
-        label: "Gráficas",
-        render: ({ latestAssistant }) => {
-          const first = latestAssistant?.file_paths?.[0] || null;
+        label: text.graphsTab,
+        render: ({ latestAssistant: latest }) => {
+          const first = latest?.file_paths?.[0] || null;
           const isImage = first ? /\.(png|jpe?g|gif|webp|svg)$/i.test(first) : false;
 
           return (
             <div className="dock-default-pane">
-              {/* Only show heading if no image */}
-              {!isImage && <h3>Gráficas</h3>}
-
+              {!isImage && <h3>{text.graphsHeading}</h3>}
               {first ? (
                 <div>
                   {isImage && (
                     <img
                       src={first}
-                      alt="Graph preview"
+                      alt={text.graphAlt}
                       style={{ maxWidth: "100%", height: "auto", display: "block" }}
                     />
                   )}
                 </div>
               ) : (
-                <p className="analysis-text">Solicita crear una gráfica de tus ventas.</p>
+                <p className="analysis-text">{text.graphsPrompt}</p>
               )}
             </div>
           );
@@ -263,26 +301,22 @@ export default function DockPanel({
       },
     ];
     return userTabs ?? defaults;
-  }, [userTabs, csvUrl]);
+  }, [userTabs, csvUrl, text]);
 
   const [activeId, setActiveId] = useState(
-    initialTabId && (userTabs ?? []).concat().some(t => t.id === initialTabId)
+    initialTabId && (userTabs ?? []).concat().some((t) => t.id === initialTabId)
       ? initialTabId
       : (userTabs ?? [])[0]?.id ?? "data"
   );
 
-  // (REMOVED) Auto-jump when a new event arrives
-
-  /* Detect data_analyzer start/finish from the streamed events */
   useEffect(() => {
     const curr = events?.length ?? 0;
     const prev = processedIndexRef.current || 0;
-    if (curr <= prev) return; // nothing new
+    if (curr <= prev) return;
 
     const newEvents = events.slice(prev, curr);
 
     for (const ev of newEvents) {
-      // 1) Assistant proposes function calls (from response.done)
       if (ev?.type === "response.done") {
         const output = ev?.response?.output ?? [];
         for (const item of output) {
@@ -297,7 +331,6 @@ export default function DockPanel({
         }
       }
 
-      // 2) Server echoes tool output (function_call_output)
       if (
         ev?.type === "conversation.item.created" &&
         ev?.item?.type === "function_call_output"
@@ -309,7 +342,6 @@ export default function DockPanel({
             setLoadingAnalyzer(false);
           }
 
-          // NEW: decide which tab to show based on the data_analyzer's output payload
           const paths =
             extractPathsFromOutputPayload(ev.item.output) ||
             extractPathsFromOutputPayload(ev.item.result) ||
@@ -322,14 +354,9 @@ export default function DockPanel({
       }
     }
 
-    processedIndexRef.current = curr; // advance processed pointer
-  }, [events, effectiveTabs]); // NEW: include effectiveTabs so fallback works with custom tabs
+    processedIndexRef.current = curr;
+  }, [events, effectiveTabs]);
 
-  const activeIndex = (userTabs ?? []).concat(
-    userTabs ? [] : [{ id: "data" }, { id: "analysis" }, { id: "graphs" }]
-  ).findIndex(t => t.id === activeId);
-
-  // a11y ids
   const baseId = useId();
   const tablistId = `${baseId}-dock-tabs`;
 
@@ -338,23 +365,26 @@ export default function DockPanel({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Open dock panel"
+        aria-label={text.openDockAria}
         className="dock-fab"
       >
-        Análisis
+        {text.fabLabel}
       </button>
     );
   }
 
-  const currentTab = effectiveTabs.find(t => t.id === activeId) ?? effectiveTabs[0];
+  const currentTab = effectiveTabs.find((t) => t.id === activeId) ?? effectiveTabs[0];
 
-  // NEW: helpers used to choose the tab on tool output
   function extractPathsFromOutputPayload(payload) {
     const tryObjects = Array.isArray(payload) ? payload : [payload];
     for (const part of tryObjects) {
       let obj = part;
       if (typeof part === "string") {
-        try { obj = JSON.parse(part); } catch { obj = null; }
+        try {
+          obj = JSON.parse(part);
+        } catch {
+          obj = null;
+        }
       }
       if (!obj || typeof obj !== "object") continue;
 
@@ -375,7 +405,7 @@ export default function DockPanel({
 
   function pickTargetTabId(hasPaths, effectiveTabsList) {
     const preferred = hasPaths ? "graphs" : "analysis";
-    if (effectiveTabsList.some(t => t.id === preferred)) return preferred;
+    if (effectiveTabsList.some((t) => t.id === preferred)) return preferred;
     return effectiveTabsList[0]?.id ?? null;
   }
 
@@ -383,7 +413,7 @@ export default function DockPanel({
     <div
       className={`dock-panel ${className}`}
       role="dialog"
-      aria-label="Docked panel"
+      aria-label={text.dockAria}
       data-expanded={expanded ? "true" : "false"}
     >
       <div className="dock-panel__header">
@@ -391,19 +421,19 @@ export default function DockPanel({
         <div className="dock-panel__actions">
           <button
             type="button"
-            onClick={() => setExpanded(v => !v)}
-            aria-label={expanded ? "Restore panel size" : "Expand panel"}
+            onClick={() => setExpanded((v) => !v)}
+            aria-label={expanded ? text.restoreAria : text.expandAria}
             className="dock-panel__iconbtn"
-            title={expanded ? "Restore" : "Expand"}
+            title={expanded ? text.restoreTitle : text.expandTitle}
           >
             {expanded ? "↙︎" : "↗︎"}
           </button>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            aria-label="Close dock panel"
+            aria-label={text.closeAria}
             className="dock-panel__iconbtn"
-            title="Close"
+            title={text.closeTitle}
           >
             ×
           </button>
@@ -417,19 +447,18 @@ export default function DockPanel({
           aria-labelledby={`${baseId}-tab-${currentTab.id}`}
           className="dock-tabpanel"
         >
-          {currentTab?.render?.({ events, latestAssistant, expanded }) ?? null}
+          {currentTab?.render?.({ events, latestAssistant, expanded }) ?? fallbackContent ?? null}
         </div>
       </div>
 
-      {/* Bottom tab strip — always present, centered, fixed count (3) */}
-      <div className="dock-tabs" aria-label="Panel tabs">
+      <div className="dock-tabs" aria-label={text.tabsAria}>
         <div
           className="dock-tabs__list"
           role="tablist"
           aria-orientation="horizontal"
           id={tablistId}
         >
-          {effectiveTabs.map((t, idx) => {
+          {effectiveTabs.map((t) => {
             const selected = t.id === activeId;
             return (
               <button
@@ -449,7 +478,6 @@ export default function DockPanel({
         </div>
       </div>
 
-      {/* Full-screen loading overlay while data_analyzer runs */}
       {loadingAnalyzer && (
         <div
           className="dock-loading-overlay"
@@ -482,7 +510,7 @@ export default function DockPanel({
                 animation: "spin 1s linear infinite",
               }}
             />
-            <div style={{ fontSize: 18, fontWeight: 600 }}>Analizando datos…</div>
+            <div style={{ fontSize: 18, fontWeight: 600 }}>{text.loading}</div>
           </div>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
