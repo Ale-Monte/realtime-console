@@ -154,6 +154,14 @@ export async function downloadContainerFile(containerFiles) {
 // ----------------- Persistent Container (singleton) -----------------
 let PERSIST = /** @type {null | { containerId: string, fileId: string }} */ (null);
 
+function isExpiredContainerError(error) {
+  return (
+    error?.status === 400 &&
+    typeof error?.error?.message === 'string' &&
+    error.error.message.toLowerCase().includes('container is expired')
+  );
+}
+
 /**
  * Create (once) and cache a container with the CSV attached.
  * Call this during server startup.
@@ -174,6 +182,11 @@ export async function initPersistentContainer() {
 
   PERSIST = { containerId: container.id, fileId: uploaded.id };
   return PERSIST;
+}
+
+async function recreatePersistentContainer() {
+  PERSIST = null;
+  return initPersistentContainer();
 }
 
 /**
@@ -198,18 +211,31 @@ async function getContainerId() {
 export async function data_analyzer(userQuery) {
   const finalResult = { assistant_response: '', file_paths: null };
 
-  // Use the persistent container instead of creating per request
+  // Use the persistent container instead of creating per request.
+  // If OpenAI rejects it as expired, recreate once and retry.
   let containerId;
+  let response;
   try {
     containerId = await getContainerId();
+    response = await createResponse(userQuery, containerId);
   } catch (e) {
-    finalResult.assistant_response = `Error ensuring container: ${e?.message || e}`;
-    return finalResult;
+    if (!isExpiredContainerError(e)) {
+      finalResult.assistant_response = `Error ensuring container: ${e?.message || e}`;
+      return finalResult;
+    }
+
+    try {
+      const recreated = await recreatePersistentContainer();
+      containerId = recreated.containerId;
+      response = await createResponse(userQuery, containerId);
+    } catch (retryError) {
+      finalResult.assistant_response =
+        `Error recreating expired container: ${retryError?.message || retryError}`;
+      return finalResult;
+    }
   }
 
-  // Generate response with that container
-  const response = await createResponse(userQuery, containerId);
-  const message = response.message || '';
+  const message = response?.message || '';
 
   // If files were produced, list and download them
   if (containerId) {

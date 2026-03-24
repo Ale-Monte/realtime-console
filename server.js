@@ -8,7 +8,7 @@ import {
   BASE_URL, MODEL, VOICE, INSTRUCTIONS, SPEED, TOOL_CHOICE, getInputAudioTranscription
 } from './config.js';
 import checaPreciosRouter from './routes/checaPrecios.js'; // Gets the default export from checaPrecios.js which is the router (import name can be anything)
-import dataAnalyzerRouter, { initPersistentContainer } from './routes/dataAnalyzer.js';
+import dataAnalyzerRouter from './routes/dataAnalyzer.js';
 import webSearchingRouter from './routes/websearching.js';
 import ragRouter from './routes/rag.js';
 
@@ -32,9 +32,7 @@ const port = process.env.PORT || 5173;
  *   app.use('/api/mytool', myToolRouter);
  */
 
-// Initialize container once at startup
 app.use("/images", express.static(path.join(process.cwd(), "images")));
-await initPersistentContainer();
 app.use('/api/checaprecios', checaPreciosRouter); // If any call goes to api/embeddings, send to embeddingsRouter
 app.use('/api/dataanalyzer', dataAnalyzerRouter); // NEW: mount the data analyzer router
 app.use('/api/websearching', webSearchingRouter);
